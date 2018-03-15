@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en-GB">
+	<head>
+		<meta charset="utf-8">
+		<title>React.js Testing</title>
+
+		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+		<script src="https://unpkg.com/react@16/umd/react.development.js"></script>
+		<script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
+		<script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
+	</head>
+
+	<style>
+		html, body {
+			width: 100%;
+			height: 100%;
+			margin: 0;
+			overflow-x: hidden;
+		}
+
+		#app {
+			height: 100%;
+		}
+
+		.app {
+			display: flex;
+			flex-flow: row nowrap;
+			transition: margin 0.3s;
+			width: 100%;
+			height: 100%;
+		}
+
+		.app__activity {
+			display: flex;
+			flex-flow: column nowrap;
+			flex: 100% 1 0;
+			transition: box-shadow 0.15s;
+			background: white;
+			height: 100%;
+		}
+
+		.app--navigated {
+			margin-left: -100%;
+		}
+
+		.app--navigated .app__activity {
+			box-shadow: -5em 0 5em #00000082;
+		}
+
+		main {
+			display: flex;
+			flex-flow: column nowrap;
+			padding: 1em;
+		}
+
+		header {
+			height: 3em;
+
+			background: #111;
+			padding: 0 1em;
+			color: white;
+
+			display: flex;
+			flex-flow: row nowrap;
+			align-items: center;
+		}
+
+		header h1 {
+			font-size: 1em;
+			margin: 0 auto;
+		}
+
+		.btn--back {
+			color: white;
+			background: transparent;
+			position: absolute;
+			padding-left: 0;
+		}
+
+		.btn--back::before {
+			content: "‹";
+			margin-right: 0.5em;
+		}
+
+		.btn-primary {
+			margin: 0.25em 0.25em;
+		}
+
+		.person {
+			display: flex;
+			flex-flow: row nowrap;
+			align-items: center;
+		}
+
+		main h1 {
+			font-size: 1.6em;
+			font-weight: 500;
+		}
+
+		main h2 {
+			margin: 0;
+			font-size: 1.2em;
+			font-weight: 400;
+		}
+
+		main h3 {
+			font-size: 1em;
+			color: grey;
+			font-weight: 400;
+		}
+
+		.person__image {
+			border-radius: 50%;
+			font-size: 3em;
+			width: 1em;
+			height: 1em;
+		}
+
+		.person__info {
+			border-bottom: solid whitesmoke thin;
+			margin-left: 1em;
+			width: 100%;
+		}
+	</style>
+
+	<body>
+		<div id="app"></div>
+	</body>
+
+	<script type="text/babel">
+		const TOP_FIVE = ["GrahamCampbell", "fabpot", "weierophinney", "rkh", "josh"]
+
+		async function getGithubData (username) {
+			return await (await fetch(`https://api.github.com/users/${username}`)).json()
+		}
+
+		class SectionPerson extends React.Component {
+			constructor(props) {
+				super(props)
+				this.state = {}
+			}
+
+			showLoadingState () {
+				this.setState({
+					fullName: "...",
+					location: "...",
+					avatar: "",
+				})
+			}
+
+			async updateWithUsername (username) {
+				if (username === this.props.username) return // if username is same, don't load anything
+
+				this.showLoadingState()
+
+				console.log("Getting info from Github API...")
+
+				const apiResult = await getGithubData(username)
+
+				console.log("Done. Updating state")
+
+				this.setState({
+					fullName: apiResult.name,
+					location: apiResult.location,
+					avatar: apiResult["avatar_url"]
+				})
+			}
+
+			componentWillReceiveProps (nextProps) {
+				this.updateWithUsername(nextProps.username)
+			}
+
+			componentDidMount() {
+				this.updateWithUsername(this.props.username)
+			}
+
+			render () {
+				return (
+					<div className="app__activity">
+						<header>
+							<button className="btn btn--back" onClick={this.props.handleBack}>Back</button>
+							<h1>Person</h1>
+						</header>
+
+						<main className="person">
+							<img className="person__image" src={this.state.avatar} />
+
+							<div className="person__info">
+								<h2>{this.state.fullName}</h2>
+								<h3>{this.state.location}</h3>
+							</div>
+						</main>
+					</div>
+				)
+			}
+		}
+
+		class SectionMenu extends React.Component {
+			render () {
+				const buttons = []
+
+				TOP_FIVE.forEach((user, index) => {
+					buttons.push(<button className="btn btn-primary" key={index} type="button" onClick={(event) => {
+						this.props.handleMenuNavigation(user)
+					}
+					}>{user}</button>)
+				})
+
+				return (
+					<div className="app__activity">
+						<header>
+							<h1>Home</h1>
+						</header>
+
+						<main>
+							<h1>Top 5 Github Users</h1>
+							<p>Tap the username to see more information</p>
+							<div>
+								{buttons}
+							</div>
+						</main>
+					</div>
+				)
+			}
+		}
+
+		class App extends React.Component {
+			constructor (props) {
+				super(props)
+
+				this.state = {
+					atMenu: true,
+					username: TOP_FIVE[0],
+				}
+			}
+
+			render () {
+				return (
+					<div className={this.state.atMenu ? "app" : "app app--navigated"}>
+						<SectionMenu handleMenuNavigation={(username) => {
+							this.setState({
+								username,
+								atMenu: false,
+							})
+						}} />
+
+						<SectionPerson username={this.state.username} handleBack={() => {
+							this.setState({
+								atMenu: true,
+							})
+						}} />
+					</div>
+				)
+			}
+		}
+
+		ReactDOM.render(
+			<App />,
+			document.getElementById("app")
+		)
+	</script>
+</html>
